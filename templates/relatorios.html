@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="no-print">
+    <div class="card" style="margin-bottom: 20px; border-left: 5px solid #004a99;">
+        <h2 style="color: #004a99; margin-top: 0;"><i class="fas fa-chart-line"></i> Painel de Relatórios e BI</h2>
+        
+        <form method="GET" action="{{ url_for('relatorios') }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div>
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Planilha:</label>
+                    <select name="table" onchange="this.form.submit()" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="">--- Escolha uma Tabela ---</option>
+                        {% for t in tables %}
+                        <option value="{{ t.name }}" {% if selected_table == t.name %}selected{% endif %}>{{ t.name|upper }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Pesquisar:</label>
+                    <input type="text" name="search" value="{{ request.args.get('search', '') }}" placeholder="Ex: Cimento..." style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
+                </div>
+
+                <div>
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">De:</label>
+                    <input type="date" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
+                </div>
+
+                <div>
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">Até:</label>
+                    <input type="date" name="data_fim" value="{{ request.args.get('data_fim', '') }}" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #ccc;">
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-top: 1px solid #eee; padding-top: 20px;">
+                
+                <button type="submit" class="btn" style="background: #004a99; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-filter"></i> Filtrar Dados
+                </button>
+
+                {% if selected_table %}
+                <a href="{{ url_for('exportar_excel', table_name=selected_table) }}" class="btn" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-file-excel"></i> Gerar Excel
+                </a>
+
+                <button type="button" class="btn" onclick="window.print()" style="background: #333; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-print"></i> PDF / Imprimir
+                </button>
+                {% endif %}
+
+                <a href="{{ url_for('relatorios') }}" class="btn" style="background: #eee; color: #333; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-left: auto;">
+                    Limpar Filtros
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if selected_table %}
+    <div class="card">
+        <h3 style="color: #666; margin-bottom: 20px;">Análise Visual: {{ selected_table|upper }}</h3>
+        <div style="height: 350px; position: relative;">
+            <canvas id="chartBI"></canvas>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Dados Detalhados</h3>
+            <span style="background: #eef; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; color: #004a99;">
+                Registros: <strong>{{ data|length }}</strong>
+            </span>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: #f8f9fa;">
+                    <tr>
+                        {% for col in cols %}
+                        <th style="padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left;">{{ col|upper }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        {% for col in cols %}
+                        <td style="padding: 12px;">{{ row[col] }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{{ cols|length }}" style="text-align: center; padding: 30px; color: #999;">
+                            Nenhum registro encontrado para este filtro.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('chartBI').getContext('2d');
+        const labels = {{ chart_data.labels | tojson }};
+        const valores = {{ chart_data.valores_lista | tojson }};
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Valores / Quantidades',
+                    data: valores,
+                    backgroundColor: 'rgba(0, 74, 153, 0.7)',
+                    borderColor: '#004a99',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    </script>
+{% else %}
+    <div class="card" style="text-align: center; padding: 50px;">
+        <i class="fas fa-table" style="font-size: 4em; color: #ddd; margin-bottom: 20px; display: block;"></i>
+        <h3 style="color: #999;">Selecione uma tabela para visualizar o relatório.</h3>
+    </div>
+{% endif %}
+
+<style>
+    @media print {
+        .no-print, nav, .btn { display: none !important; }
+        .card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; width: 100% !important; }
+        body { background: white !important; }
+    }
+    .btn:hover { opacity: 0.9; }
+</style>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Configuração de Tabelas</h2>
+<form method="POST">
+    <input type="text" name="table_name" placeholder="Nome da Tabela" required>
+    <div id="columns">
+        <div>
+            <input type="text" name="col_name" placeholder="Nome Coluna" required>
+            <select name="col_type">
+                <option value="TEXT">Texto Simples (Nome, Cidade)</option>
+                <option value="TEXT">Texto Longo (Observações, Descrição)</option>
+                <option value="INTEGER">Número Inteiro (Quantidade, Idade)</option>
+                <option value="REAL">Valor com Centavos (Preço, Peso)</option>
+                <option value="DATE">Data (Dia/Mês/Ano)</option>
+                <option value="DATETIME">Data e Hora (Registro exato)</option>
+                <option value="BOOLEAN">Sim ou Não (Status)</option>
+            </select>
+        </div>
+    </div>
+    <button type="button" onclick="addCol()">+ Coluna</button>
+    <button type="submit">Criar Tabela</button>
+</form>
+
+<h3>Tabelas Ativas</h3>
+<ul>
+    {% for t in tables %}
+    <li>
+        <strong>{{ t.name }}</strong> 
+        <a href="/crud/{{ t.name }}">Gerenciar Dados</a> | 
+        <a href="/drop_table/{{ t.name }}" style="color:red">Excluir Tabela</a>
+    </li>
+    {% endfor %}
+</ul>
+
+<script>
+function addCol() {
+    const div = document.createElement('div');
+    div.style.marginTop = "10px"; // Adiciona um espacinho entre as colunas
+    div.innerHTML = `
+        <input type="text" name="col_name" placeholder="Nome Coluna" required> 
+        <select name="col_type">
+            <option value="TEXT">Texto Simples (Nome, Cidade)</option>
+            <option value="TEXT">Texto Longo (Observações, Descrição)</option>
+            <option value="INTEGER">Número Inteiro (Quantidade, Idade)</option>
+            <option value="REAL">Valor com Centavos (Preço, Peso)</option>
+            <option value="DATE">Data (Dia/Mês/Ano)</option>
+            <option value="DATETIME">Data e Hora (Registro exato)</option>
+            <option value="BOOLEAN">Sim ou Não (Status)</option>
+        </select>
+        <button type="button" onclick="this.parentElement.remove()" style="background:red; color:white; border:none; border-radius:4px; cursor:pointer;">X</button>
+    `;
+    document.getElementById('columns').appendChild(div);
+}
+</script>
+{% endblock %}

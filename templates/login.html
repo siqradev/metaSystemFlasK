@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Meta Data System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+        .error-msg {
+            color: #d9534f;
+            background: #f2dede;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body style="background: #f0f2f5;">
+    <div class="login-container">
+        <h2>Acesso ao Sistema</h2>
+        <p>Entre com suas credenciais</p>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="error-msg">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <input type="text" name="username" placeholder="Usuário" required style="width: 90%; padding: 12px; margin-bottom: 15px;">
+            <input type="password" name="password" placeholder="Senha" required style="width: 90%; padding: 12px; margin-bottom: 20px;">
+            <button type="submit" style="width: 100%; padding: 12px; font-size: 16px;">Entrar</button>
+        </form>
+        
+        <div style="margin-top: 20px; font-size: 0.8rem; color: #666;">
+
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+    
+            <p style="font-size: 0.9em; color: #666;">Não possui uma conta?</p>
+            <a href="{{ url_for('register') }}" class="btn" style="background: #eee; color: #004a99; width: 100%; box-sizing: border-box;">
+            Criar meu Cadastro
+            </a>
+        </div>
+   
+
+   
+</div>
+</body>
+</html>

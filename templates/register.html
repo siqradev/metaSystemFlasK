@@ -1,0 +1,10 @@
+<div style="max-width:300px; margin:100px auto; font-family:sans-serif;">
+    <h2>Novo Cadastro</h2>
+    <form method="POST">
+        <input type="text" name="matricula" placeholder="Matrícula" required style="width:100%; padding:10px; margin-bottom:10px;">
+        <input type="text" name="username" placeholder="Usuário" required style="width:100%; padding:10px; margin-bottom:10px;">
+        <input type="password" name="password" placeholder="Senha" required style="width:100%; padding:10px; margin-bottom:10px;">
+        <button type="submit" style="width:100%; padding:10px; background:green; color:white; border:none;">Cadastrar</button>
+    </form>
+    <a href="{{ url_for('login') }}" style="display:block; text-align:center; margin-top:10px;">Voltar ao Login</a>
+</div>
