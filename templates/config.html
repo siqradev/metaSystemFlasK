@@ -1,55 +1,135 @@
 {% extends 'base.html' %}
-{% block content %}
-<h2>Configuração de Tabelas</h2>
-<form method="POST">
-    <input type="text" name="table_name" placeholder="Nome da Tabela" required>
-    <div id="columns">
-        <div>
-            <input type="text" name="col_name" placeholder="Nome Coluna" required>
-            <select name="col_type">
-                <option value="TEXT">Texto Simples (Nome, Cidade)</option>
-                <option value="TEXT">Texto Longo (Observações, Descrição)</option>
-                <option value="INTEGER">Número Inteiro (Quantidade, Idade)</option>
-                <option value="REAL">Valor com Centavos (Preço, Peso)</option>
-                <option value="DATE">Data (Dia/Mês/Ano)</option>
-                <option value="DATETIME">Data e Hora (Registro exato)</option>
-                <option value="BOOLEAN">Sim ou Não (Status)</option>
-            </select>
-        </div>
-    </div>
-    <button type="button" onclick="addCol()">+ Coluna</button>
-    <button type="submit">Criar Tabela</button>
-</form>
 
-<h3>Tabelas Ativas</h3>
-<ul>
-    {% for t in tables %}
-    <li>
-        <strong>{{ t.name }}</strong> 
-        <a href="/crud/{{ t.name }}">Gerenciar Dados</a> | 
-        <a href="/drop_table/{{ t.name }}" style="color:red">Excluir Tabela</a>
-    </li>
-    {% endfor %}
-</ul>
+{% block content %}
+<div class="card">
+    <h2 style="color: #004a99;"><i class="fas fa-database"></i> Configuração de Tabelas</h2>
+    <p style="color: #666;">Crie novas estruturas de dados dinâmicas para o sistema.</p>
+    <hr>
+
+    <form method="POST" id="formConfig">
+        <div style="margin-bottom: 20px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Nome da Tabela (Sem espaços):</label>
+            <input type="text" name="table_name" placeholder="Ex: materiais_obra" required 
+                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
+
+        <div id="columns">
+            <h4 style="margin-bottom: 10px; color: #444;">Definição de Colunas</h4>
+            <div class="column-row" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" name="col_name" placeholder="Nome Coluna (Ex: preco_unitario)" required 
+                       class="input-col" style="flex: 2; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                <select name="col_type" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="TEXT">Texto (Nome, Descrição)</option>
+                    <option value="INTEGER">Número Inteiro (Qtd, Idade)</option>
+                    <option value="REAL">Decimal (Preço, Peso)</option>
+                    <option value="DATE">Data (Dia/Mês/Ano)</option>
+                    <option value="DATETIME">Data e Hora</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
+            <button type="button" onclick="addCol()" class="btn" style="background: #eee; color: #333; padding: 10px 15px;">
+                <i class="fas fa-plus"></i> Adicionar Coluna
+            </button>
+            <span style="font-size: 0.85em; color: #d9534f; font-weight: bold;">
+                <i class="fas fa-exclamation-triangle"></i> Evite nomes como "id" ou "data_criacao".
+            </span>
+        </div>
+
+        <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            <button type="submit" class="btn btn-save" style="background: #004a99; width: 100%; padding: 15px; font-size: 1.1em;">
+                <i class="fas fa-check-circle"></i> Criar Tabela Agora
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <h3><i class="fas fa-list"></i> Tabelas Ativas no Sistema</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+        <thead style="background: #f8f9fa;">
+            <tr>
+                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6;">NOME DA TABELA</th>
+                <th style="padding: 12px; text-align: right; border-bottom: 2px solid #dee2e6;">AÇÕES</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tables %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 12px; font-weight: bold; color: #004a99;">{{ t.name|upper }}</td>
+                <td style="padding: 12px; text-align: right;">
+                    <a href="/crud/{{ t.name }}" class="btn" style="background: #5bc0de; color: white; padding: 5px 10px; text-decoration: none; font-size: 0.85em; border-radius: 4px;">
+                        <i class="fas fa-edit"></i> Dados
+                    </a>
+                    <a href="/drop_table/{{ t.name }}" onclick="return confirm('Tem certeza? Isso apagará todos os dados desta tabela!')" 
+                       class="btn" style="background: #d9534f; color: white; padding: 5px 10px; text-decoration: none; font-size: 0.85em; border-radius: 4px; margin-left: 5px;">
+                        <i class="fas fa-trash"></i> Excluir
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
 
 <script>
+// Lista de nomes que o SQLite ou seu código já usam automaticamente
+const RESERVADOS = ['id', 'criado_por', 'data_criacao', 'data', 'user'];
+
 function addCol() {
     const div = document.createElement('div');
-    div.style.marginTop = "10px"; // Adiciona um espacinho entre as colunas
+    div.className = "column-row";
+    div.style.marginTop = "10px";
+    div.style.display = "flex";
+    div.style.gap = "10px";
     div.innerHTML = `
-        <input type="text" name="col_name" placeholder="Nome Coluna" required> 
-        <select name="col_type">
-            <option value="TEXT">Texto Simples (Nome, Cidade)</option>
-            <option value="TEXT">Texto Longo (Observações, Descrição)</option>
-            <option value="INTEGER">Número Inteiro (Quantidade, Idade)</option>
-            <option value="REAL">Valor com Centavos (Preço, Peso)</option>
-            <option value="DATE">Data (Dia/Mês/Ano)</option>
-            <option value="DATETIME">Data e Hora (Registro exato)</option>
-            <option value="BOOLEAN">Sim ou Não (Status)</option>
+        <input type="text" name="col_name" placeholder="Nome Coluna" required class="input-col"
+               style="flex: 2; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"> 
+        <select name="col_type" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+            <option value="TEXT">Texto</option>
+            <option value="INTEGER">Número Inteiro</option>
+            <option value="REAL">Decimal</option>
+            <option value="DATE">Data</option>
+            <option value="DATETIME">Data e Hora</option>
         </select>
-        <button type="button" onclick="this.parentElement.remove()" style="background:red; color:white; border:none; border-radius:4px; cursor:pointer;">X</button>
+        <button type="button" onclick="this.parentElement.remove()" 
+                style="background:#d9534f; color:white; border:none; border-radius:4px; cursor:pointer; padding: 0 15px;">
+            <i class="fas fa-times"></i>
+        </button>
     `;
     document.getElementById('columns').appendChild(div);
 }
+
+// VALIDAÇÃO ANTES DE ENVIAR
+document.getElementById('formConfig').onsubmit = function(e) {
+    const inputs = document.querySelectorAll('.input-col');
+    const nomesEncontrados = [];
+
+    for (let input of inputs) {
+        const nomeValor = input.value.trim().toLowerCase();
+
+        // 1. Verifica nomes proibidos
+        if (RESERVADOS.includes(nomeValor)) {
+            alert(`O nome "${nomeValor}" é reservado pelo sistema. Por favor, use algo mais específico (ex: data_pagamento).`);
+            input.style.borderColor = "red";
+            input.focus();
+            e.preventDefault();
+            return false;
+        }
+
+        // 2. Verifica nomes duplicados no mesmo formulário
+        if (nomesEncontrados.includes(nomeValor)) {
+            alert(`Você digitou o nome "${nomeValor}" duas vezes. Cada coluna deve ter um nome único.`);
+            input.style.borderColor = "red";
+            input.focus();
+            e.preventDefault();
+            return false;
+        }
+        nomesEncontrados.push(nomeValor);
+    }
+};
 </script>
 {% endblock %}
