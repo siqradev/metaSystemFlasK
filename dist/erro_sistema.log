@@ -1,0 +1,22 @@
+2026-03-14 21:34:03,259 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.18.127:8080
+2026-03-14 21:34:03,260 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-14 21:35:49,114 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.18.127:8080
+2026-03-14 21:35:49,114 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-14 22:11:28,051 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8080
+ * Running on http://192.168.18.127:8080
+2026-03-14 22:11:28,051 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-14 22:11:52,063 - INFO - 127.0.0.1 - - [14/Mar/2026 22:11:52] "[32mGET / HTTP/1.1[0m" 302 -
+2026-03-14 22:11:52,082 - INFO - 127.0.0.1 - - [14/Mar/2026 22:11:52] "GET /login HTTP/1.1" 200 -
+2026-03-14 22:11:52,234 - INFO - 127.0.0.1 - - [14/Mar/2026 22:11:52] "GET /static/style.css HTTP/1.1" 200 -
+2026-03-14 22:12:29,634 - INFO - 127.0.0.1 - - [14/Mar/2026 22:12:29] "POST /login HTTP/1.1" 200 -
+2026-03-14 22:12:29,668 - INFO - 127.0.0.1 - - [14/Mar/2026 22:12:29] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2026-03-14 22:12:39,320 - INFO - 127.0.0.1 - - [14/Mar/2026 22:12:39] "POST /login HTTP/1.1" 200 -
+2026-03-14 22:12:39,355 - INFO - 127.0.0.1 - - [14/Mar/2026 22:12:39] "[36mGET /static/style.css HTTP/1.1[0m" 304 -

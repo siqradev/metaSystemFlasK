@@ -13,7 +13,21 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             border-radius: 8px;
             text-align: center;
+            /* Garante que o padding não aumente a largura do container */
+            box-sizing: border-box; 
         }
+        
+        /* Ajuste crucial para os inputs não vazarem */
+        .login-container input {
+            width: 100%;             /* Ocupa 100% do espaço interno do card */
+            box-sizing: border-box;  /* Impede que o padding 'empurre' o input para fora */
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: block;          /* Garante que fiquem um abaixo do outro */
+        }
+
         .error-msg {
             color: #d9534f;
             background: #f2dede;
@@ -21,6 +35,29 @@
             margin-bottom: 15px;
             border-radius: 4px;
             font-size: 0.9rem;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background-color: #004a99;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-register {
+            display: block;
+            text-decoration: none;
+            background: #eee;
+            color: #004a99;
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -38,25 +75,19 @@
         {% endwith %}
 
         <form method="POST">
-            <div style="display: flex; flex-direction: column; width: 100%; text-align: center; box-sizing: border-box;">
-                <input type="text" name="username" placeholder="Usuário" required style="width: 90%; padding: 12px; margin-bottom: 15px;">
-                <input type="password" name="password" placeholder="Senha" required style="width: 90%; padding: 12px; margin-bottom: 20px;">
-            </div>
-            <button type="submit" style="width: 100%; padding: 12px; font-size: 16px;">Entrar</button>
+            <input type="text" name="username" placeholder="Usuário" required>
+            <input type="password" name="password" placeholder="Senha" required>
+            
+            <button type="submit" class="btn-submit">Entrar</button>
         </form>
         
         <div style="margin-top: 20px; font-size: 0.8rem; color: #666;">
-
             <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-    
             <p style="font-size: 0.9em; color: #505050;">Não possui uma conta?</p>
-            <a href="{{ url_for('register') }}" class="btn" style="background: #eee; color: #004a99; width: 100%; box-sizing: border-box;">
-            Criar meu Cadastro
+            <a href="{{ url_for('register') }}" class="btn-register">
+                Criar meu Cadastro
             </a>
         </div>
-   
-
-   
-</div>
+    </div>
 </body>
 </html>
