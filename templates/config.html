@@ -6,7 +6,7 @@
     <p style="color: #666;">Crie novas estruturas de dados dinâmicas para o sistema.</p>
     <hr>
 
-    <form method="POST" id="formConfig">
+    <form action="{{ url_for('config') }}" method="POST" id="formConfig">
         <div style="margin-bottom: 20px;">
             <label style="font-weight: bold; display: block; margin-bottom: 5px;">Nome da Tabela (Sem espaços):</label>
             <input type="text" name="table_name" placeholder="Ex: materiais_obra" required 
@@ -38,7 +38,7 @@
         </div>
 
         <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-            <button type="submit" class="btn btn-save" style="background: #004a99; width: 100%; padding: 15px; font-size: 1.1em;">
+            <button type="submit" class="btn btn-save" style="background: #004a99; width: 100%; padding: 15px; color: white; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer;">
                 <i class="fas fa-check-circle"></i> Criar Tabela Agora
             </button>
         </div>
@@ -59,10 +59,10 @@
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 12px; font-weight: bold; color: #004a99;">{{ t.name|upper }}</td>
                 <td style="padding: 12px; text-align: right;">
-                    <a href="/crud/{{ t.name }}" class="btn" style="background: #5bc0de; color: white; padding: 5px 10px; text-decoration: none; font-size: 0.85em; border-radius: 4px;">
+                    <a href="{{ url_for('crud', table_name=t.name) }}" class="btn" style="background: #5bc0de; color: white; padding: 5px 10px; text-decoration: none; font-size: 0.85em; border-radius: 4px;">
                         <i class="fas fa-edit"></i> Dados
                     </a>
-                    <a href="/drop_table/{{ t.name }}" onclick="return confirm('Tem certeza? Isso apagará todos os dados desta tabela!')" 
+                    <a href="{{ url_for('drop_table', name=t.name) }}" onclick="return confirm('Tem certeza? Isso apagará todos os dados desta tabela!')" 
                        class="btn" style="background: #d9534f; color: white; padding: 5px 10px; text-decoration: none; font-size: 0.85em; border-radius: 4px; margin-left: 5px;">
                         <i class="fas fa-trash"></i> Excluir
                     </a>
@@ -73,11 +73,8 @@
     </table>
 </div>
 
-
-
 <script>
-// Lista de nomes que o SQLite ou seu código já usam automaticamente
-const RESERVADOS = ['id', 'criado_por', 'data_criacao', 'data', 'user'];
+const RESERVADOS = ['id', 'criado_por', 'data_criacao']; // Removido 'data' e 'user' para dar mais liberdade
 
 function addCol() {
     const div = document.createElement('div');
@@ -96,33 +93,30 @@ function addCol() {
             <option value="DATETIME">Data e Hora</option>
         </select>
         <button type="button" onclick="this.parentElement.remove()" 
-                style="background:#d9534f; color:white; border:none; border-radius:4px; cursor:pointer; padding: 0 15px;">
+                style="background:#d9534f; color:white; border:none; border-radius:4px; cursor:pointer; padding: 10px 15px;">
             <i class="fas fa-times"></i>
         </button>
     `;
     document.getElementById('columns').appendChild(div);
 }
 
-// VALIDAÇÃO ANTES DE ENVIAR
 document.getElementById('formConfig').onsubmit = function(e) {
     const inputs = document.querySelectorAll('.input-col');
     const nomesEncontrados = [];
 
     for (let input of inputs) {
-        const nomeValor = input.value.trim().toLowerCase();
+        const nomeValor = input.value.trim().toLowerCase().replace(/ /g, "_");
 
-        // 1. Verifica nomes proibidos
         if (RESERVADOS.includes(nomeValor)) {
-            alert(`O nome "${nomeValor}" é reservado pelo sistema. Por favor, use algo mais específico (ex: data_pagamento).`);
+            alert(`O nome "${nomeValor}" é reservado pelo sistema.`);
             input.style.borderColor = "red";
             input.focus();
             e.preventDefault();
             return false;
         }
 
-        // 2. Verifica nomes duplicados no mesmo formulário
         if (nomesEncontrados.includes(nomeValor)) {
-            alert(`Você digitou o nome "${nomeValor}" duas vezes. Cada coluna deve ter um nome único.`);
+            alert(`Você digitou o nome "${nomeValor}" duas vezes.`);
             input.style.borderColor = "red";
             input.focus();
             e.preventDefault();

@@ -16,10 +16,21 @@
     </div>
 </div>
 
+<!-- BARRA DE BUSCA ADICIONADA -->
+<div class="card" style="margin-bottom: 25px; border-left: 5px solid #004a99; padding: 15px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <i class="fas fa-search" style="color: #004a99;"></i>
+        <input type="text" id="inputBusca" onkeyup="filtrarTabelas()" 
+               placeholder="🔍 Digite o nome da planilha para filtrar..." 
+               style="width: 100%; border: none; outline: none; font-size: 16px;">
+    </div>
+</div>
+
 <h3>Minhas Planilhas Dinâmicas</h3>
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+<div id="containerTabelas" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
     {% for t in tables %}
-    <div class="card" style="text-align: center;">
+    <!-- Classe 'card-tabela' adicionada para o filtro funcionar -->
+    <div class="card card-tabela" style="text-align: center;">
         <i class="fas fa-table" style="font-size: 2em; color: #004a99; margin-bottom: 10px;"></i>
         <h4 style="margin: 10px 0;">{{ t.name|upper }}</h4>
         <div style="display: flex; gap: 5px; justify-content: center;">
@@ -31,4 +42,23 @@
     </div>
     {% endfor %}
 </div>
+
+<!-- SCRIPT DE FILTRO INSTANTÂNEO -->
+<script>
+function filtrarTabelas() {
+    let input = document.getElementById('inputBusca').value.toLowerCase();
+    let cards = document.querySelectorAll('.card-tabela');
+    
+    cards.forEach(card => {
+        let nomeTabela = card.querySelector('h4').innerText.toLowerCase();
+        // Se o nome da tabela contém o que foi digitado, mostra; senão, esconde.
+        if (nomeTabela.includes(input)) {
+            card.style.display = "";
+        } else {
+            card.style.display = "none";
+        }
+    });
+}
+</script>
+
 {% endblock %}
