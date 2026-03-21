@@ -11,7 +11,7 @@ app.secret_key = 'cagece_meta_key_final'
 try:
     init_db()
 except Exception as e:
-    print(f"⚠️ Erro ao iniciar banco: {e}")
+    print(f"Erro ao iniciar banco: {e}")
 
 # Registro de todas as rotas
 register_routes(app, get_db)
