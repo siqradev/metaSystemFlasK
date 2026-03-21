@@ -1,48 +1,80 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="card">
-    <h2 style="color: #004a99;"><i class="fas fa-database"></i> Configuração de Tabelas</h2>
-    <p style="color: #666;">Crie novas estruturas de dados dinâmicas para o sistema.</p>
-    <hr>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    
+    <div class="card">
+        <h2 style="color: #004a99;"><i class="fas fa-database"></i> Configuração de Tabelas</h2>
+        <p style="color: #666;">Crie novas estruturas de dados dinâmicas para o sistema.</p>
+        <hr>
 
-    <form action="{{ url_for('config') }}" method="POST" id="formConfig">
-        <div style="margin-bottom: 20px;">
-            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Nome da Tabela (Sem espaços):</label>
-            <input type="text" name="table_name" placeholder="Ex: materiais_obra" required 
-                   style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-        </div>
-
-        <div id="columns">
-            <h4 style="margin-bottom: 10px; color: #444;">Definição de Colunas</h4>
-            <div class="column-row" style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <input type="text" name="col_name" placeholder="Nome Coluna (Ex: preco_unitario)" required 
-                       class="input-col" style="flex: 2; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                <select name="col_type" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                    <option value="TEXT">Texto (Nome, Descrição)</option>
-                    <option value="INTEGER">Número Inteiro (Qtd, Idade)</option>
-                    <option value="REAL">Decimal (Preço, Peso)</option>
-                    <option value="DATE">Data (Dia/Mês/Ano)</option>
-                    <option value="DATETIME">Data e Hora</option>
+        <form action="{{ url_for('config') }}" method="POST" id="formConfig">
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Nome da Tabela (Pré-definido no Catálogo):</label>
+                <select name="table_name" required 
+                        style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                    <option value="">-- Selecione um Nome do Catálogo --</option>
+                    {% for op in opcoes_catalogo %}
+                    <option value="{{ op.nome_exibicao }}">{{ op.nome_exibicao }}</option>
+                    {% endfor %}
                 </select>
             </div>
-        </div>
 
-        <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
-            <button type="button" onclick="addCol()" class="btn" style="background: #eee; color: #333; padding: 10px 15px;">
-                <i class="fas fa-plus"></i> Adicionar Coluna
-            </button>
-            <span style="font-size: 0.85em; color: #d9534f; font-weight: bold;">
-                <i class="fas fa-exclamation-triangle"></i> Evite nomes como "id" ou "data_criacao".
-            </span>
-        </div>
+            <div style="background: #e7f3ff; padding: 10px; border-radius: 4px; border-left: 4px solid #004a99; margin-bottom: 20px; font-size: 0.9em;">
+                <i class="fas fa-info-circle"></i> <b>Campos Padrão Inclusos:</b><br>
+                Contrato, Ano, Nome da Obra, Licitado, Data Base e Referência.
+            </div>
 
-        <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-            <button type="submit" class="btn btn-save" style="background: #004a99; width: 100%; padding: 15px; color: white; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer;">
-                <i class="fas fa-check-circle"></i> Criar Tabela Agora
+            <div id="columns">
+                <h4 style="margin-bottom: 10px; color: #444;">Adicionar Colunas Extras</h4>
+                <div class="column-row" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" name="col_name" placeholder="Ex: Metragem_Executada" 
+                           class="input-col" style="flex: 2; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                    <select name="col_type" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="TEXT">Texto / Livre</option>
+                        <option value="REAL">Valor Numérico</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
+                <button type="button" onclick="addCol()" class="btn" style="background: #eee; color: #333; padding: 10px 15px; border: none; cursor: pointer;">
+                    <i class="fas fa-plus"></i> Mais Colunas
+                </button>
+            </div>
+
+            <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+                <button type="submit" class="btn btn-save" style="background: #004a99; width: 100%; padding: 15px; color: white; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer;">
+                    <i class="fas fa-check-circle"></i> Criar Planilha Agora
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card" style="border-top: 5px solid #27ae60;">
+        <h3 style="color: #27ae60;"><i class="fas fa-list-ul"></i> Catálogo de Nomes</h3>
+        <p style="font-size: 0.9em; color: #666;">Cadastre aqui os nomes permitidos para novas tabelas.</p>
+        
+        <form action="{{ url_for('add_catalogo') }}" method="POST" style="display: flex; gap: 5px; margin-bottom: 20px;">
+            <input type="text" name="novo_nome" placeholder="Ex: REDE_DE_ESGOTO" required 
+                   style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+            <button type="submit" class="btn" style="background: #27ae60; color: white; border: none; padding: 10px; cursor: pointer;">
+                <i class="fas fa-plus"></i>
             </button>
+        </form>
+
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tbody style="font-size: 0.85em;">
+                    {% for op in opcoes_catalogo %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px;"><i class="fas fa-tag" style="color: #ccc;"></i> {{ op.nome_exibicao }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </form>
+    </div>
 </div>
 
 <div class="card" style="margin-top: 20px;">
@@ -74,7 +106,7 @@
 </div>
 
 <script>
-const RESERVADOS = ['id', 'criado_por', 'data_criacao']; // Removido 'data' e 'user' para dar mais liberdade
+const RESERVADOS = ['id', 'criado_por', 'data_criacao', 'contrato', 'ano', 'nome_da_obra', 'licitado', 'data_base', 'referencia'];
 
 function addCol() {
     const div = document.createElement('div');
@@ -87,10 +119,7 @@ function addCol() {
                style="flex: 2; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"> 
         <select name="col_type" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
             <option value="TEXT">Texto</option>
-            <option value="INTEGER">Número Inteiro</option>
-            <option value="REAL">Decimal</option>
-            <option value="DATE">Data</option>
-            <option value="DATETIME">Data e Hora</option>
+            <option value="REAL">Número</option>
         </select>
         <button type="button" onclick="this.parentElement.remove()" 
                 style="background:#d9534f; color:white; border:none; border-radius:4px; cursor:pointer; padding: 10px 15px;">
@@ -105,10 +134,11 @@ document.getElementById('formConfig').onsubmit = function(e) {
     const nomesEncontrados = [];
 
     for (let input of inputs) {
+        if (!input.value.trim()) continue; // Pula se estiver vazio
         const nomeValor = input.value.trim().toLowerCase().replace(/ /g, "_");
 
         if (RESERVADOS.includes(nomeValor)) {
-            alert(`O nome "${nomeValor}" é reservado pelo sistema.`);
+            alert(`O nome "${nomeValor}" é reservado ou já está incluso por padrão.`);
             input.style.borderColor = "red";
             input.focus();
             e.preventDefault();
