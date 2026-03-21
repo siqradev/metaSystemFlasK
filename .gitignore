@@ -1,0 +1,28 @@
+# Ambientes Virtuais (Pasta venv)
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Banco de Dados Local
+# (Não subimos o .db se ele for usado para testes locais, 
+# já que o oficial está no caminho UNC da Cagece)
+*.db
+*.sqlite3
+
+# Arquivos de Sistema e IDEs
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Arquivos de Distribuição/Build
+dist/
+build/
+*.egg-info/
+
+# Arquivos de log e temporários
+*.log
+instance/
+.env
