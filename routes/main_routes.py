@@ -129,13 +129,37 @@ def register_routes(app, get_db):
     def relatorios():
         db = get_db()
         tables = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('usuarios_sistema', 'catalogo_tabelas')").fetchall()
+        
         table_name = request.args.get('table')
         report_data, cols = [], []
+        
+        # ESSENCIAL: Inicializa o chart_data para evitar o erro de 'Undefined'
+        chart_data = {'labels': [], 'valores_lista': []}
+
         if table_name:
-            info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
-            cols = [c['name'] for c in info]
-            report_data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
-        return render_template('relatorios.html', tables=tables, data=report_data, cols=cols, selected_table=table_name)
+            try:
+                info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
+                cols = [c['name'] for c in info]
+                report_data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
+                
+                # Opcional: Lógica simples para preencher o gráfico (ex: contagem por item)
+                if report_data:
+                    # Exemplo: pega os 5 primeiros registros para o gráfico
+                    for row in report_data[:5]:
+                        # Usa a 3ª coluna (Nome da Obra) como label, se existir
+                        label = str(row[cols[2]]) if len(cols) > 2 else f"ID {row['id']}"
+                        chart_data['labels'].append(label)
+                        chart_data['valores_lista'].append(1) # Valor fixo para teste
+            except Exception as e:
+                flash(f"Erro ao carregar dados: {e}")
+
+        # Agora passamos o chart_data explicitamente
+        return render_template('relatorios.html', 
+                               tables=tables, 
+                               data=report_data, 
+                               cols=cols, 
+                               selected_table=table_name,
+                               chart_data=chart_data)
 
     @app.route('/usuarios')
     @login_required
