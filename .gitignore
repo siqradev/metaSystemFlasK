@@ -26,3 +26,9 @@ build/
 *.log
 instance/
 .env
+
+# banco de dados oficial (caminho UNC, não deve ser versionado)
+\\int.cagece.com.br\\cagece\\dados\\projetos\\projetos-externos\\projeto-agua-azul\\db\\agua_azul.db
+datatabase.db
+database.db-shm
+database.db-wal
