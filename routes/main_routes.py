@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import unicodedata
 
-# Decorator de Proteção de Rota
+# 1. PROTEÇÃO DE ROTA
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -26,6 +26,7 @@ def register_routes(app, get_db):
         total_users = db.execute("SELECT COUNT(*) as total FROM usuarios_sistema").fetchone()['total']
         return render_template('index.html', tables=tables, total_tables=len(tables), total_users=total_users)
 
+    # 2. CONFIGURAÇÃO (Criação de Tabelas com colunas padrão Cagece)
     @app.route('/config', methods=['GET', 'POST'])
     @login_required
     def config():
@@ -44,7 +45,6 @@ def register_routes(app, get_db):
                 name = unicodedata.normalize('NFKD', raw_name).encode('ascii', 'ignore').decode('ascii').replace(" ", "_").lower()
                 name = re.sub(r'[^a-z0-9_]', '', name)
                 
-                # Colunas Padrão da Imagem
                 default_cols = [
                     "contrato TEXT", "ano TEXT", "nome_da_obra TEXT", 
                     "licitado TEXT", "data_base TEXT", "referencia TEXT"
@@ -58,8 +58,8 @@ def register_routes(app, get_db):
                         c_clean = re.sub(r'[^a-z0-9_]', '', unicodedata.normalize('NFKD', c).encode('ascii', 'ignore').decode('ascii').replace(" ", "_").lower())
                         extra_cols.append(f"{c_clean} {t}")
                 
-                all_cols = default_cols + extra_cols
-                query = f"CREATE TABLE {name} (id INTEGER PRIMARY KEY AUTOINCREMENT, {', '.join(all_cols)}, criado_por TEXT, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+                all_cols_query = default_cols + extra_cols
+                query = f"CREATE TABLE {name} (id INTEGER PRIMARY KEY AUTOINCREMENT, {', '.join(all_cols_query)}, criado_por TEXT, data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
                 db.execute(query)
                 db.commit()
                 flash(f"Tabela '{raw_name.upper()}' criada com sucesso!")
@@ -68,7 +68,6 @@ def register_routes(app, get_db):
                 flash(f"Erro ao criar tabela: {e}")
 
         opcoes = db.execute("SELECT * FROM catalogo_tabelas ORDER BY nome_exibicao").fetchall()
-        # Filtramos as tabelas para o seu bloco de "Tabelas Ativas" no config.html
         tables = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('usuarios_sistema', 'catalogo_tabelas')").fetchall()
         return render_template('config.html', opcoes_catalogo=opcoes, tables=tables)
 
@@ -82,23 +81,33 @@ def register_routes(app, get_db):
                 try:
                     db.execute("INSERT INTO catalogo_tabelas (nome_exibicao) VALUES (?)", (novo_nome,))
                     db.commit()
-                    flash(f"'{novo_nome}' adicionado ao catálogo!")
                 except: flash("Nome já existe.")
         return redirect(url_for('config'))
 
+    # 3. CRUD (Listagem com suporte a all_cols do seu HTML perfeito)
     @app.route('/crud/<table_name>')
     @login_required
     def crud(table_name):
         db = get_db()
         search = request.args.get('search', '')
         info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
+        
+        # cols: Para o formulário de "Novo Registro"
         cols = [c['name'] for c in info if c['name'] not in ['id', 'criado_por', 'data_criacao']]
+        
+        # all_cols: Para o cabeçalho da tabela (exatamente como seu HTML pede)
+        all_cols = [c['name'] for c in info if c['name'] != 'id']
+        
         if search and len(cols) > 0:
-            data = db.execute(f"SELECT * FROM {table_name} WHERE {cols[0]} LIKE ? OR {cols[2]} LIKE ? ORDER BY id DESC", (f'%{search}%', f'%{search}%')).fetchall()
+            # Busca no Contrato (cols[0]) ou Nome da Obra (cols[2])
+            data = db.execute(f"SELECT * FROM {table_name} WHERE {cols[0]} LIKE ? OR {cols[2]} LIKE ? ORDER BY id DESC", 
+                               (f'%{search}%', f'%{search}%')).fetchall()
         else:
             data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
-        return render_template('crud.html', table_name=table_name, cols=cols, data=data, now_date=datetime.now().strftime('%d/%m/%Y'))
+            
+        return render_template('crud.html', table_name=table_name, cols=cols, all_cols=all_cols, data=data, now_date=datetime.now().strftime('%d/%m/%Y'))
 
+    # 4. INSERIR DADOS
     @app.route('/insert/<table_name>', methods=['POST'])
     @login_required
     def insert(table_name):
@@ -112,62 +121,62 @@ def register_routes(app, get_db):
         db.commit()
         return redirect(url_for('crud', table_name=table_name))
 
+    # 5. EDITAR REGISTRO
+    @app.route('/edit/<table_name>/<int:id>', methods=['GET', 'POST'])
+    @login_required
+    def edit(table_name, id):
+        db = get_db()
+        info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
+        cols = [c['name'] for c in info if c['name'] not in ['id', 'criado_por', 'data_criacao']]
+        
+        if request.method == 'POST':
+            values = [request.form.get(c) for c in cols]
+            set_clause = ", ".join([f"{c} = ?" for c in cols])
+            values.append(id)
+            db.execute(f"UPDATE {table_name} SET {set_clause} WHERE id = ?", values)
+            db.commit()
+            flash("Registro atualizado!")
+            return redirect(url_for('crud', table_name=table_name))
+
+        row = db.execute(f"SELECT * FROM {table_name} WHERE id = ?", (id,)).fetchone()
+        return render_template('edit.html', table_name=table_name, row=row, cols=cols)
+
+    # 6. EXCLUIR REGISTRO (Necessário para o 'X' do seu CRUD)
+    @app.route('/delete_row/<table_name>/<int:id>')
+    @login_required
+    def delete_row(table_name, id):
+        db = get_db()
+        db.execute(f"DELETE FROM {table_name} WHERE id = ?", (id,))
+        db.commit()
+        return redirect(url_for('crud', table_name=table_name))
+
+    # 7. EXCLUIR TABELA INTEIRA
     @app.route('/drop_table/<name>')
     @login_required
     def drop_table(name):
-        if session.get('nivel') == 'admin':
+        if session.get('nivel') == 'admin' and name not in ['usuarios_sistema', 'catalogo_tabelas']:
             db = get_db()
-            if name not in ['usuarios_sistema', 'catalogo_tabelas']:
-                db.execute(f"DROP TABLE IF EXISTS {name}")
-                db.commit()
-                flash(f"Tabela {name} excluída.")
+            db.execute(f"DROP TABLE IF EXISTS {name}")
+            db.commit()
         return redirect(url_for('index'))
 
-    # ROTA DE RELATÓRIOS (ESSENCIAL PARA NÃO DAR BUILDERROR)
+    # 8. RELATÓRIOS E EXPORTAÇÃO
     @app.route('/relatorios')
     @login_required
     def relatorios():
         db = get_db()
         tables = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('usuarios_sistema', 'catalogo_tabelas')").fetchall()
-        
         table_name = request.args.get('table')
-        report_data, cols = [], []
-        
-        # ESSENCIAL: Inicializa o chart_data para evitar o erro de 'Undefined'
-        chart_data = {'labels': [], 'valores_lista': []}
-
+        report_data, cols, chart_data = [], [], {'labels': [], 'valores_lista': []}
         if table_name:
-            try:
-                info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
-                cols = [c['name'] for c in info]
-                report_data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
-                
-                # Opcional: Lógica simples para preencher o gráfico (ex: contagem por item)
-                if report_data:
-                    # Exemplo: pega os 5 primeiros registros para o gráfico
-                    for row in report_data[:5]:
-                        # Usa a 3ª coluna (Nome da Obra) como label, se existir
-                        label = str(row[cols[2]]) if len(cols) > 2 else f"ID {row['id']}"
-                        chart_data['labels'].append(label)
-                        chart_data['valores_lista'].append(1) # Valor fixo para teste
-            except Exception as e:
-                flash(f"Erro ao carregar dados: {e}")
-
-        # Agora passamos o chart_data explicitamente
-        return render_template('relatorios.html', 
-                               tables=tables, 
-                               data=report_data, 
-                               cols=cols, 
-                               selected_table=table_name,
-                               chart_data=chart_data)
-
-    @app.route('/usuarios')
-    @login_required
-    def usuarios():
-        if session.get('nivel') != 'admin': return redirect(url_for('index'))
-        db = get_db()
-        lista = db.execute("SELECT id, matricula, username, nivel FROM usuarios_sistema").fetchall()
-        return render_template('usuarios.html', usuarios=lista)
+            info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
+            cols = [c['name'] for c in info]
+            report_data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
+            for row in report_data[:5]:
+                label = str(row[cols[2]]) if len(cols) > 2 else f"ID {row['id']}"
+                chart_data['labels'].append(label)
+                chart_data['valores_lista'].append(1)
+        return render_template('relatorios.html', tables=tables, data=report_data, cols=cols, selected_table=table_name, chart_data=chart_data)
 
     @app.route('/exportar/<table_name>')
     @login_required
@@ -180,6 +189,15 @@ def register_routes(app, get_db):
         out.seek(0)
         return send_file(out, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", as_attachment=True, download_name=f"Relatorio_{table_name}.xlsx")
 
+    # 9. USUÁRIOS E LOGIN
+    @app.route('/usuarios')
+    @login_required
+    def usuarios():
+        if session.get('nivel') != 'admin': return redirect(url_for('index'))
+        db = get_db()
+        lista = db.execute("SELECT id, matricula, username, nivel FROM usuarios_sistema").fetchall()
+        return render_template('usuarios.html', usuarios=lista)
+
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         if request.method == 'POST':
@@ -191,6 +209,17 @@ def register_routes(app, get_db):
                 return redirect(url_for('index'))
             flash("Credenciais inválidas.")
         return render_template('login.html')
+
+    @app.route('/register', methods=['GET', 'POST'])
+    def register():
+        if request.method == 'POST':
+            db = get_db()
+            hashed_pw = generate_password_hash(request.form['password'])
+            db.execute("INSERT INTO usuarios_sistema (username, password, matricula, nivel) VALUES (?, ?, ?, 'user')",
+                       (request.form['username'], hashed_pw, request.form['matricula']))
+            db.commit()
+            return redirect(url_for('login'))
+        return render_template('register.html')
 
     @app.route('/logout')
     def logout():
