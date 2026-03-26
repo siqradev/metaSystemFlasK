@@ -84,29 +84,42 @@ def register_routes(app, get_db):
                 except: flash("Nome já existe.")
         return redirect(url_for('config'))
 
-    # 3. CRUD (Listagem com suporte a all_cols do seu HTML perfeito)
+    # 3. CRUD (Listagem com FILTRO GLOBAL DINÂMICO)
     @app.route('/crud/<table_name>')
     @login_required
     def crud(table_name):
         db = get_db()
         search = request.args.get('search', "").strip()
     
-        # Pega as informações das colunas
+        # Pega as informações de todas as colunas da tabela
         info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
+    
+        # Colunas para o formulário (excluindo metadados)
         cols = [c['name'] for c in info if c['name'] not in ['id', 'criado_por', 'data_criacao']]
+    
+        # Todas as colunas que serão exibidas na tabela
         all_cols = [c['name'] for c in info if c['name'] != 'id']
 
         if search:
-            # Busca no Contrato (index 0) OU Nome da Obra (index 2)
-            # Usamos parênteses no SQL para garantir a precedência
-            query = f"SELECT * FROM {table_name} WHERE ({cols[0]} LIKE ?) OR ({cols[2]} LIKE ?) ORDER BY id DESC"
-            data = db.execute(query, (f'%{search}%', f'%{search}%')).fetchall()
+            # CONSTRUÇÃO DO FILTRO GLOBAL:
+            # Cria um "WHERE coluna LIKE ?" para CADA coluna existente na tabela
+            where_clauses = [f"{c['name']} LIKE ?" for c in info if c['name'] != 'id']
+            where_sql = " OR ".join(where_clauses)
+        
+            query = f"SELECT * FROM {table_name} WHERE {where_sql} ORDER BY id DESC"
+        
+            # Repete o termo de busca para cada interrogação (?) no SQL
+            params = [f'%{search}%'] * len(where_clauses)
+            data = db.execute(query, params).fetchall()
         else:
             data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
 
-        return render_template('crud.html', table_name=table_name, cols=cols, 
-                            all_cols=all_cols, data=data, 
-                            now_date=datetime.now().strftime('%d/%m/%Y'))
+        return render_template('crud.html', 
+                           table_name=table_name, 
+                           cols=cols, 
+                           all_cols=all_cols, 
+                           data=data, 
+                           now_date=datetime.now().strftime('%d/%m/%Y'))
 
     # 4. INSERIR DADOS
     @app.route('/insert/<table_name>', methods=['POST'])
