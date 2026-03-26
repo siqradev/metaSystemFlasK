@@ -47,7 +47,7 @@ def register_routes(app, get_db):
                 
                 default_cols = [
                     "contrato TEXT", "ano TEXT", "nome_da_obra TEXT", 
-                    "licitado TEXT", "data_base TEXT", "referencia TEXT"
+                    "data_base TEXT", "referencia TEXT"
                 ]
                 
                 cols_raw = request.form.getlist('col_name')
@@ -89,23 +89,24 @@ def register_routes(app, get_db):
     @login_required
     def crud(table_name):
         db = get_db()
-        search = request.args.get('search', '')
+        search = request.args.get('search', "").strip()
+    
+        # Pega as informações das colunas
         info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
-        
-        # cols: Para o formulário de "Novo Registro"
         cols = [c['name'] for c in info if c['name'] not in ['id', 'criado_por', 'data_criacao']]
-        
-        # all_cols: Para o cabeçalho da tabela (exatamente como seu HTML pede)
         all_cols = [c['name'] for c in info if c['name'] != 'id']
-        
-        if search and len(cols) > 0:
-            # Busca no Contrato (cols[0]) ou Nome da Obra (cols[2])
-            data = db.execute(f"SELECT * FROM {table_name} WHERE {cols[0]} LIKE ? OR {cols[2]} LIKE ? ORDER BY id DESC", 
-                               (f'%{search}%', f'%{search}%')).fetchall()
+
+        if search:
+            # Busca no Contrato (index 0) OU Nome da Obra (index 2)
+            # Usamos parênteses no SQL para garantir a precedência
+            query = f"SELECT * FROM {table_name} WHERE ({cols[0]} LIKE ?) OR ({cols[2]} LIKE ?) ORDER BY id DESC"
+            data = db.execute(query, (f'%{search}%', f'%{search}%')).fetchall()
         else:
             data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
-            
-        return render_template('crud.html', table_name=table_name, cols=cols, all_cols=all_cols, data=data, now_date=datetime.now().strftime('%d/%m/%Y'))
+
+        return render_template('crud.html', table_name=table_name, cols=cols, 
+                            all_cols=all_cols, data=data, 
+                            now_date=datetime.now().strftime('%d/%m/%Y'))
 
     # 4. INSERIR DADOS
     @app.route('/insert/<table_name>', methods=['POST'])
@@ -160,34 +161,73 @@ def register_routes(app, get_db):
             db.commit()
         return redirect(url_for('index'))
 
-    # 8. RELATÓRIOS E EXPORTAÇÃO
+ 
+    # 8. RELATÓRIOS E EXPORTAÇÃO (FILTRO GLOBAL INTELIGENTE)
     @app.route('/relatorios')
     @login_required
     def relatorios():
         db = get_db()
         tables = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('usuarios_sistema', 'catalogo_tabelas')").fetchall()
+    
         table_name = request.args.get('table')
+        search = request.args.get('search', "").strip()
+    
         report_data, cols, chart_data = [], [], {'labels': [], 'valores_lista': []}
+    
         if table_name:
+            # Pega info das colunas
             info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
             cols = [c['name'] for c in info]
-            report_data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
+        
+            if search:
+                # Busca em TODAS as colunas (Resolve o problema do 10/2020)
+                where_clauses = [f"{col} LIKE ?" for col in cols]
+                where_sql = " OR ".join(where_clauses)
+                query = f"SELECT * FROM {table_name} WHERE {where_sql} ORDER BY id DESC"
+                params = [f'%{search}%'] * len(cols)
+                report_data = db.execute(query, params).fetchall()
+            else:
+                report_data = db.execute(f"SELECT * FROM {table_name} ORDER BY id DESC").fetchall()
+
+            # Alimenta o gráfico (limitado aos 5 primeiros para não poluir)
             for row in report_data[:5]:
-                label = str(row[cols[2]]) if len(cols) > 2 else f"ID {row['id']}"
+                # Usa a 4ª coluna (Nome da Obra) para o label, se existir
+                label = str(row[cols[3]]) if len(cols) > 3 else f"ID {row['id']}"
                 chart_data['labels'].append(label)
-                chart_data['valores_lista'].append(1)
+                chart_data['valores_lista'].append(1) 
+            
         return render_template('relatorios.html', tables=tables, data=report_data, cols=cols, selected_table=table_name, chart_data=chart_data)
 
     @app.route('/exportar/<table_name>')
     @login_required
     def exportar_excel(table_name):
         db = get_db()
-        df = pd.read_sql_query(f"SELECT * FROM {table_name}", db)
+        search = request.args.get('search', "").strip()
+    
+        info = db.execute(f"PRAGMA table_info({table_name})").fetchall()
+        cols = [c['name'] for c in info]
+    
+        # Se houver busca na URL, exporta apenas os itens filtrados
+        if search:
+            where_clauses = [f"{col} LIKE ?" for col in cols]
+            where_sql = " OR ".join(where_clauses)
+            query = f"SELECT * FROM {table_name} WHERE {where_sql} ORDER BY id DESC"
+            params = [f'%{search}%'] * len(cols)
+            df = pd.read_sql_query(query, db, params=params)
+            filename = f"Relatorio_FILTRADO_{table_name}.xlsx"
+        else:
+            # Caso contrário, exporta a planilha inteira
+            query = f"SELECT * FROM {table_name} ORDER BY id DESC"
+            df = pd.read_sql_query(query, db)
+            filename = f"Relatorio_GERAL_{table_name}.xlsx"
+
         out = BytesIO()
         with pd.ExcelWriter(out, engine='openpyxl') as writer:
             df.to_excel(writer, index=False)
         out.seek(0)
-        return send_file(out, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", as_attachment=True, download_name=f"Relatorio_{table_name}.xlsx")
+    
+        return send_file(out, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                         as_attachment=True, download_name=filename)
 
     # 9. USUÁRIOS E LOGIN
     @app.route('/usuarios')
