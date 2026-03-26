@@ -1,11 +1,13 @@
 from flask import Flask
+import dotenv
+dotenv.load_dotenv()  # Carrega variáveis de ambiente do arquivo .env
 import os
 import sys
 from models.database import init_db, get_db 
 from routes.main_routes import register_routes 
 
 app = Flask(__name__)
-app.secret_key = 'cagece_meta_key_final'
+app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')  # Use uma chave secreta do .env ou um valor padrão
 
 # Inicialização
 try:

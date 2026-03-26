@@ -1,9 +1,12 @@
 import sqlite3
 import os
 from werkzeug.security import generate_password_hash
+import dotenv
+dotenv.load_dotenv()  # Carrega variáveis de ambiente do arquivo .env
+import os
 
 # Caminhos Oficiais Cagece [Pág 1]
-DB_UNC = r"\\int.cagece.com.br\den\spe\Gproj\4.0RC\09.DIVERSOS\DB_PARAMETRIZACAO\database.db"
+DB_UNC = os.getenv("DATABASE_URL")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_LOCAL = os.path.join(BASE_DIR, "database.db")
 
