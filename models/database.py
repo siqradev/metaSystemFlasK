@@ -1,22 +1,28 @@
 import sqlite3
 import os
+import sys # <--- Adicionado para o executável
 from werkzeug.security import generate_password_hash
 import dotenv
-dotenv.load_dotenv()  # Carrega variáveis de ambiente do arquivo .env
-import os
+dotenv.load_dotenv() 
 
-# Caminhos Oficiais Cagece [Pág 1]
+# --- AJUSTE PARA EXECUTÁVEL (Caminho Dinâmico) ---
+if getattr(sys, 'frozen', False):
+    # Se for o .EXE rodando, a pasta base é onde o .exe está
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    # Se for no Linux/VS Code, mantém o comportamento original
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 DB_UNC = os.getenv("DATABASE_URL")
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_LOCAL = os.path.join(BASE_DIR, "database.db")
+# ------------------------------------------------
 
 def get_db():
-    # Prioriza rede, se falhar usa local. Timeout de 20s conforme solicitado no PDF.
-    path = DB_UNC if os.path.exists(os.path.dirname(DB_UNC)) else DB_LOCAL
+    # Lógica de escolha de caminho original mantida
+    path = DB_UNC if DB_UNC and os.path.exists(os.path.dirname(DB_UNC)) else DB_LOCAL
     
     conn = sqlite3.connect(path, timeout=20, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    # Estabilidade em rede: evita "Database is locked"
     conn.execute("PRAGMA journal_mode=WAL") 
     return conn
 
@@ -31,18 +37,18 @@ def init_db():
             password TEXT,
             nivel TEXT DEFAULT 'usuario')''')
         
-        # 2. Tabela de Catálogo (Sua nova tabela de nomes predefinidos)
+        # 2. Tabela de Catálogo
         conn.execute('''CREATE TABLE IF NOT EXISTS catalogo_tabelas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_exibicao TEXT UNIQUE
         )''')
 
-        # 3. Inserindo exemplos baseados na sua imagem da Cagece
+        # 3. Inserindo exemplos
         nomes_padrao = ['CASA_DE_OPERADOR', 'CX_MON_JUS', 'REDE_DE_DISTRIBUICAO', 'ESTACAO_ELEVATORIA']
         for nome in nomes_padrao:
             conn.execute("INSERT OR IGNORE INTO catalogo_tabelas (nome_exibicao) VALUES (?)", (nome,))
         
-        # 4. Admin padrão com Hash de Segurança [Pág 1]
+        # 4. Admin padrão
         if not conn.execute("SELECT * FROM usuarios_sistema WHERE username='admin'").fetchone():
             hash_pwd = generate_password_hash('admin123')
             conn.execute("INSERT INTO usuarios_sistema (matricula, username, password, nivel) VALUES (?, ?, ?, ?)",
@@ -54,7 +60,6 @@ def init_db():
     finally:
         conn.close()
 
-# Se rodar este arquivo sozinho, ele limpa e recria as tabelas base
 if __name__ == "__main__":
     init_db()
     print("Banco de dados Cagece inicializado com sucesso!")
