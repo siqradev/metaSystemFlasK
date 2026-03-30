@@ -1,4 +1,4 @@
-name: Gerar Executavel Windows
+name: build-windows
 
 on:
   push:
@@ -9,20 +9,21 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
-    - name: Instalar Dependencias
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller waitress
 
-    - name: Gerar EXE
+    - name: Generate EXE
       run: |
         python -m PyInstaller --noconfirm --onefile --windowed --add-data "templates;templates" --add-data "static;static" --name "Meta_System_Cagece" app.py
 
