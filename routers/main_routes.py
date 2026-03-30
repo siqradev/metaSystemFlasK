@@ -17,7 +17,6 @@ def login_required(f):
     return decorated_function
 
 def register_routes(app, get_db):
-
     @app.route('/')
     @login_required
     def index():
