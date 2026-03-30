@@ -1,42 +1,7 @@
-### --- PADRÃO METASYSTEM --- ###
-
-# Ambientes Virtuais e Dependências
 venv/
-.venv/
-env/
-python/
-bin/
-lib/
-include/
-share/
-
-# Cache do Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-
-# Banco de Dados (Bloqueia todos os locais e temporários)
-*.db
-*.sqlite3
-*.db-shm
-*.db-wal
-
-# Configurações Sensíveis (Onde fica o link da Cagece)
 .env
-
-# Arquivos de Build e Spec
 build/
 dist/
 *.spec
-*.egg-info/
-
-# Arquivos de Sistema e IDEs
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Bloqueio Específico de Caminhos de Rede (Prevenção)
-\\int.cagece.com.br*
-//int.cagece.com.br*
