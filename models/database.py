@@ -1,6 +1,6 @@
 import sqlite3
 import os
-import sys # <--- Adicionado para o executável
+import sys 
 from werkzeug.security import generate_password_hash
 import dotenv
 dotenv.load_dotenv() 
@@ -18,10 +18,19 @@ DB_LOCAL = os.path.join(BASE_DIR, "database.db")
 # ------------------------------------------------
 
 def get_db():
-    # Lógica de escolha de caminho original mantida
-    path = DB_UNC if DB_UNC and os.path.exists(os.path.dirname(DB_UNC)) else DB_LOCAL
-    
-    conn = sqlite3.connect(path, timeout=20, check_same_thread=False)
+    # Tenta o caminho do W: primeiro (se estiver no .env)
+    if DB_UNC:
+        try:
+            # Conecta direto. Se a rede estiver offline ou o caminho errado, ele pula para o except
+            conn = sqlite3.connect(DB_UNC, timeout=20, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL") 
+            return conn
+        except Exception as e:
+            print(f"Aviso: Servidor W: inacessível. Erro: {e}")
+
+    # Se não houver .env ou o W: falhar, usa o banco local na pasta do .exe
+    conn = sqlite3.connect(DB_LOCAL, timeout=20, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL") 
     return conn
