@@ -1,12 +1,12 @@
-name: Gerar Executável Windows
+name: Gerar Executavel Windows
 
 on:
   push:
-    branches: [ main ]  # Executa toda vez que você der push na branch main
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: windows-latest  # Aqui está o segredo: ele usa um Windows real
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -16,17 +16,17 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Instalar Dependências
+    - name: Instalar Dependencias
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller waitress
 
-    - name: Gerar .EXE com PyInstaller
+    - name: Gerar EXE
       run: |
         python -m PyInstaller --noconfirm --onefile --windowed --add-data "templates;templates" --add-data "static;static" --name "Meta_System_Cagece" app.py
 
-    - name: Upload do Executável
+    - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
         name: Meta_System_Windows
