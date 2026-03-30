@@ -3,42 +3,44 @@ import os
 import sys 
 from werkzeug.security import generate_password_hash
 import dotenv
-dotenv.load_dotenv() 
 
-# --- AJUSTE PARA EXECUTÁVEL (Caminho Dinâmico) ---
+# 1. Localiza a pasta do executável (Windows) ou do script (Linux)
 if getattr(sys, 'frozen', False):
-    # Se for o .EXE rodando, a pasta base é onde o .exe está
     BASE_DIR = os.path.dirname(sys.executable)
 else:
-    # Se for no Linux/VS Code, mantém o comportamento original
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-DB_UNC = os.getenv("DATABASE_URL")
-DB_LOCAL = os.path.join(BASE_DIR, "database.db")
-# ------------------------------------------------
+# 2. Carrega o .env obrigatoriamente da pasta onde o programa está
+dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+# 3. Pega o caminho do banco do ambiente
+DB_PATH = os.getenv("DATABASE_URL")
 
 def get_db():
-    # Tenta o caminho do W: primeiro (se estiver no .env)
-    if DB_UNC:
-        try:
-            # Conecta direto. Se a rede estiver offline ou o caminho errado, ele pula para o except
-            conn = sqlite3.connect(DB_UNC, timeout=20, check_same_thread=False)
-            conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA journal_mode=WAL") 
-            return conn
-        except Exception as e:
-            print(f"Aviso: Servidor W: inacessível. Erro: {e}")
+    if not DB_PATH:
+        print("\n[ERRO] DATABASE_URL não encontrada no .env!")
+        sys.exit(1)
 
-    # Se não houver .env ou o W: falhar, usa o banco local na pasta do .exe
-    conn = sqlite3.connect(DB_LOCAL, timeout=20, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL") 
-    return conn
+    try:
+        # O segredo: 'mode=rw' proíbe a criação de novos arquivos .db
+        # Se o arquivo não existir no servidor, ele dará ERRO em vez de criar um local
+        db_uri = f"file:{DB_PATH}?mode=rw"
+        conn = sqlite3.connect(db_uri, uri=True, timeout=30, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except sqlite3.OperationalError as e:
+        print("\n" + "!"*60)
+        print("ERRO CRÍTICO: BANCO DE DADOS NÃO ENCONTRADO NA REDE!")
+        print(f"Caminho tentado: {DB_PATH}")
+        print(f"Mensagem: {e}")
+        print("!"*60 + "\n")
+        # Força o erro para o Flask não rodar com banco vazio
+        raise RuntimeError(f"Acesso negado ou arquivo inexistente: {DB_PATH}")
 
 def init_db():
-    conn = get_db()
+    """Verifica tabelas. Se o banco não existir, o get_db() já trava o processo aqui."""
     try:
-        # 1. Tabela de Usuários
+        conn = get_db()
         conn.execute('''CREATE TABLE IF NOT EXISTS usuarios_sistema (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             matricula TEXT UNIQUE,
@@ -46,29 +48,20 @@ def init_db():
             password TEXT,
             nivel TEXT DEFAULT 'usuario')''')
         
-        # 2. Tabela de Catálogo
         conn.execute('''CREATE TABLE IF NOT EXISTS catalogo_tabelas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_exibicao TEXT UNIQUE
-        )''')
+            nome_exibicao TEXT UNIQUE)''')
 
-        # 3. Inserindo exemplos
-        nomes_padrao = ['CASA_DE_OPERADOR', 'CX_MON_JUS', 'REDE_DE_DISTRIBUICAO', 'ESTACAO_ELEVATORIA']
-        for nome in nomes_padrao:
-            conn.execute("INSERT OR IGNORE INTO catalogo_tabelas (nome_exibicao) VALUES (?)", (nome,))
-        
-        # 4. Admin padrão
+        # Admin padrão
         if not conn.execute("SELECT * FROM usuarios_sistema WHERE username='admin'").fetchone():
             hash_pwd = generate_password_hash('admin123')
             conn.execute("INSERT INTO usuarios_sistema (matricula, username, password, nivel) VALUES (?, ?, ?, ?)",
                         ('0000', 'admin', hash_pwd, 'admin'))
         
         conn.commit()
-    except Exception as e:
-        print(f"Erro ao inicializar banco: {e}")
-    finally:
         conn.close()
+    except Exception as e:
+        print(f"Falha na inicialização: {e}")
 
 if __name__ == "__main__":
     init_db()
-    print("Banco de dados Cagece inicializado com sucesso!")
