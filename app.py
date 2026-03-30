@@ -1,13 +1,25 @@
 from flask import Flask
 import dotenv
-dotenv.load_dotenv()  # Carrega variáveis de ambiente do arquivo .env
 import os
 import sys
+
+# --- BLOCO PARA CORREÇÃO DO EXECUTÁVEL ---
+if getattr(sys, 'frozen', False):
+    # Se rodando como .exe, busca as pastas dentro do pacote temporário
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    static_folder = os.path.join(sys._MEIPASS, 'static')
+    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+else:
+    # Se rodando normal no Linux/VS Code, busca as pastas locais
+    app = Flask(__name__)
+# ------------------------------------------
+
+dotenv.load_dotenv() 
+import os # Import repetido, pode manter ou remover o de cima
 from models.database import init_db, get_db 
 from routers.main_routes import register_routes 
 
-app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')  # Use uma chave secreta do .env ou um valor padrão
+app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
 
 # Inicialização
 try:
@@ -19,5 +31,5 @@ except Exception as e:
 register_routes(app, get_db)
 
 if __name__ == '__main__':
-    # host 0.0.0.0 permite que outros vejam na rede se o firewall permitir
+    # No executável, o waitress ou o app.run precisam de uma porta fixa
     app.run(host='0.0.0.0', port=8080, debug=False)
