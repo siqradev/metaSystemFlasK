@@ -79,8 +79,3 @@ wheel==0.42.0
 wsproto==1.2.0
 xdg==5
 xkit==0.0.0
-Flask==3.0.2
-pandas==2.2.1
-python-dotenv==1.0.1
-Werkzeug==3.0.1
-openpyxl==3.1.2
