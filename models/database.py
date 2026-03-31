@@ -75,4 +75,4 @@ def init_db():
             db.execute("ROLLBACK")
             print(f"Erro ao criar tabelas: {e}")
         finally:
-            db.close()
+            db.close()# Versao Final de Rede 2026
