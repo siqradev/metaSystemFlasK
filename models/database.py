@@ -5,7 +5,7 @@ from pathlib import Path
 from werkzeug.security import generate_password_hash
 import dotenv
 
-# 1. Localização inteligente do .env (Mantido exatamente como o seu)
+# 1. Localização inteligente do .env (Mantido original)
 if getattr(sys, 'frozen', False):
     CWD = os.path.dirname(sys.executable)
 else:
@@ -18,24 +18,28 @@ def get_db():
     db_path = os.getenv("DATABASE_URL")
     
     if not db_path:
-        # Importante para você ver no terminal se o .env carregou
         print("ERRO: DATABASE_URL não encontrada no .env")
         return None
 
+    # AJUSTE EXTRA: Limpa aspas e espaços que podem vir do .env e bugar o Windows
+    db_path = db_path.strip().replace('"', '').replace("'", "")
+
     try:
-        # AJUSTE 1: Aumentamos para 60s o timeout para dar tempo da rede responder
-        conn = sqlite3.connect(db_path, timeout=60, check_same_thread=False)
+        # AJUSTE 1: isolation_level=None impede que o Windows 11 bloqueie o arquivo na rede
+        conn = sqlite3.connect(
+            db_path, 
+            timeout=60, 
+            check_same_thread=False, 
+            isolation_level=None
+        )
         conn.row_factory = sqlite3.Row
         
-        # AJUSTE 2: Fallback do WAL. Se a rede da Cagece não permitir WAL, 
-        # ele usa o modo padrão sem derrubar o sistema (Erro 500).
+        # AJUSTE 2: Tenta o modo WAL, mas não morre se a rede for restrita
         try:
             conn.execute("PRAGMA journal_mode=WAL;")
             conn.execute("PRAGMA synchronous=NORMAL;")
-        except sqlite3.OperationalError:
-            # Se cair aqui, é porque a pasta de rede é restrita. 
-            # O sistema continuará funcionando no modo estável.
-            pass
+        except:
+            pass # Segue no modo padrão se a rede não deixar criar arquivos de log
             
         return conn
     except Exception as e:
@@ -47,6 +51,9 @@ def init_db():
     db = get_db()
     if db:
         try:
+            # Iniciamos uma transação manual já que usamos isolation_level=None
+            db.execute("BEGIN")
+            
             db.execute('''CREATE TABLE IF NOT EXISTS usuarios_sistema (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 matricula TEXT UNIQUE,
@@ -62,8 +69,10 @@ def init_db():
                 hash_pwd = generate_password_hash('admin123')
                 db.execute("INSERT INTO usuarios_sistema (matricula, username, password, nivel) VALUES (?, ?, ?, ?)",
                              ('0000', 'admin', hash_pwd, 'admin'))
-            db.commit()
+            
+            db.execute("COMMIT")
         except Exception as e:
+            db.execute("ROLLBACK")
             print(f"Erro ao criar tabelas: {e}")
         finally:
             db.close()
