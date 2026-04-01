@@ -1,31 +1,36 @@
-name: build
+name: Build MetaSystem
+
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   job_build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    env:
+      # Resolve o aviso do Node.js 20/24
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    
     steps:
-      - name: Checkout
+      # Atualizado para v4 para evitar erros de versão do Node
+      - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
-      - name: Libs
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flask waitress python-dotenv pandas openpyxl pyinstaller
+          pip install -r requirements.txt
 
-      - name: EXE
+      - name: Run Database Init Test
         run: |
-          pyinstaller --noconfirm --onefile --windowed --add-data "templates;templates" --add-data "static;static" --name "Meta_System_Cagece" app.py
-
-      - name: Save
-        uses: actions/upload-artifact@v4
-        with:
-          name: Meta_System_Windows
-          path: dist/Meta_System_Cagece.exe
+          # Criamos um .env falso para o GitHub não tentar ler o seu W:\ real
+          echo "DATABASE_URL=test_db.db" > .env
+          python -c "from models.database import init_db; init_db()"
