@@ -20,8 +20,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Forçamos a instalação do numpy antes de tudo
           pip install numpy==1.26.4
+          pip install python-dotenv
           pip install -r requirements.txt
           pip install pyinstaller
 
