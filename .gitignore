@@ -5,3 +5,17 @@ __pycache__/
 build/
 dist/
 *.spec
+# Banco de dados
+*.db
+*.db-shm
+*.db-wal
+
+# Variáveis de ambiente (Segurança Crítica)
+.env
+
+# Pastas de ambiente virtual e cache
+venv/
+__pycache__/
+dist/
+build/
+*.spec
