@@ -7,8 +7,7 @@ on:
 
 jobs:
   job_build:
-    runs-on: windows-latest  # ISSO GERA O .EXE
-    
+    runs-on: windows-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -21,13 +20,16 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          # Forçamos a instalação do numpy antes de tudo
+          pip install numpy==1.26.4
           pip install -r requirements.txt
           pip install pyinstaller
 
       - name: Build Executable
         run: |
-          # Se o seu arquivo principal não for app.py, mude o nome abaixo
-          pyinstaller --onefile --noconsole --name "Meta_System_Windows" app.py
+          # --add-data inclui suas pastas de interface no .exe
+          # No Windows do GitHub, o separador é ;
+          pyinstaller --onefile --noconsole --name "Meta_System_Windows" --add-data "templates;templates" --add-data "static;static" app.py
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
